@@ -10,9 +10,12 @@ import com.sky.service.DishService;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import lombok.extern.slf4j.Slf4j;
+import net.bytebuddy.asm.Advice;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 /**
  * 菜品管理
@@ -50,5 +53,19 @@ public class DishController {
         log.info("菜品分页查询，参数为{}", dishPageQueryDTO);
         PageResult pageResult = dishService.pageQuery(dishPageQueryDTO);
         return Result.success(pageResult);
+    }
+
+    /**
+     * 菜品批量删除
+     * @param ids
+     * @return
+     */
+    @DeleteMapping
+    @ApiOperation("菜品批量删除")
+    //RequestParam用于形参（List<Long>）与请求参数（String）类型不一致时，用于映射
+    public Result deleteDish(@RequestParam List<Long> ids) {
+        log.info("删除菜品，参数为{}", ids);
+        dishService.deleteBatch(ids);
+        return Result.success();
     }
 }
