@@ -80,6 +80,7 @@ public class DishServiceImpl implements DishService {
      */
     @Transactional
     public void deleteBatch(List<Long> ids) {
+
         //若ids中存在起售中的菜品，则报错，全部都不能删除
         for (Long id : ids) {
             Dish dish = dishMapper.getById(id);
@@ -144,20 +145,48 @@ public class DishServiceImpl implements DishService {
     }
 
     /**
-     * 根据分类查询菜品及口味
-     * @param categoryId
+     * 条件查询菜品和口味
+     * @param dish
      * @return
      */
-    public List<DishVO> getByCategoryIdWithFlavor(Long categoryId) {
+    public List<DishVO> listWithFlavor(Dish dish) {
+        List<Dish> dishList = dishMapper.list(dish);
+
         List<DishVO> dishVOList = new ArrayList<>();
-        List<Dish> dishList = dishMapper.getByCategoryId(categoryId);
-        for (Dish dish : dishList) {
-            List<DishFlavor> flavors = dishFlavorMapper.getByDishId(dish.getId());
+
+        for (Dish d : dishList) {
             DishVO dishVO = new DishVO();
-            BeanUtils.copyProperties(dish, dishVO);
+            BeanUtils.copyProperties(d,dishVO);
+
+            //根据菜品id查询对应的口味
+            List<DishFlavor> flavors = dishFlavorMapper.getByDishId(d.getId());
+
             dishVO.setFlavors(flavors);
             dishVOList.add(dishVO);
         }
+
         return dishVOList;
     }
+
+
+    /**
+     * 菜品起售停售
+     * @param status
+     * @param id
+     */
+    public void startOrStop(Integer status, Long id) {
+        dishMapper.startOrStop(status, id);
+    }
+
+    /**
+     * 根据分类id查询菜品
+     * @param categoryId
+     * @return
+     */
+    public List<Dish> getByCategoryId(Long categoryId) {
+        List<Dish> dishList = dishMapper.getByCategoryId(categoryId);
+        return dishList;
+    }
+
+
 }

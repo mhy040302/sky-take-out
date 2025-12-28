@@ -4,6 +4,7 @@ import com.sky.dto.DishDTO;
 import com.sky.dto.DishPageQueryDTO;
 import com.sky.dto.EmployeePageQueryDTO;
 import com.sky.entity.Dish;
+import com.sky.entity.DishFlavor;
 import com.sky.result.PageResult;
 import com.sky.result.Result;
 import com.sky.service.DishService;
@@ -12,11 +13,14 @@ import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import lombok.extern.slf4j.Slf4j;
 import net.bytebuddy.asm.Advice;
+import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Set;
 
 /**
  * 菜品管理
@@ -29,6 +33,8 @@ public class DishController {
 
     @Autowired
     private DishService dishService;
+    @Autowired
+    private RedisTemplate redisTemplate;
 
     /**
      * 新增菜品
@@ -40,6 +46,12 @@ public class DishController {
     public Result addDish(@RequestBody DishDTO dishDTO) {
         log.info("新增菜品,{}", dishDTO);
         dishService.addDishWithFlavor(dishDTO);
+
+        //构造新增数据的redis key
+        String key = "dish_" + dishDTO.getCategoryId();
+        //清除缓存
+        redisTemplate.delete(key);
+
         return Result.success();
     }
 
@@ -67,6 +79,12 @@ public class DishController {
     public Result deleteDish(@RequestParam List<Long> ids) {
         log.info("删除菜品，参数为{}", ids);
         dishService.deleteBatch(ids);
+
+        //清空所有菜品缓存
+        //获取菜品缓存的key
+        Set dishKeys = redisTemplate.keys("dish_");
+        redisTemplate.delete(dishKeys);
+
         return Result.success();
     }
 
@@ -83,6 +101,27 @@ public class DishController {
         return Result.success(dishVO);
     }
 
+
+    /**
+     * 菜品起售停售
+     * @param status
+     * @param id
+     * @return
+     */
+    @PostMapping("/status/{status}")
+    @ApiOperation("菜品起售停售")
+    public Result<String> startOrStop(@PathVariable Integer status, Long id){
+
+        dishService.startOrStop(status, id);
+
+        //清理缓存
+        Set dishKeys = redisTemplate.keys("dish_");
+        redisTemplate.delete(dishKeys);
+
+        return Result.success();
+    }
+
+
     /**
      * 修改菜品信息
      * @param dishDTO
@@ -93,6 +132,26 @@ public class DishController {
     public Result updateDish(@RequestBody DishDTO dishDTO) {
         log.info("修改菜品{}", dishDTO);
         dishService.update(dishDTO);
+
+        //清空所有菜品缓存
+        //获取菜品缓存的key
+        Set dishKeys = redisTemplate.keys("dish_");
+        redisTemplate.delete(dishKeys);
+
         return Result.success();
+    }
+
+    /**
+     * 根据分类id查询菜品
+     * @param categoryId
+     * @return
+     */
+    @GetMapping("/list")
+    @ApiOperation("根据分类id查询菜品")
+    public Result<List<Dish>> getByCategoryId(Long categoryId) {
+
+        log.info("根据分类id查询菜品{}", categoryId);
+        List<Dish> dishList = dishService.getByCategoryId(categoryId);
+        return Result.success(dishList);
     }
 }
