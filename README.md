@@ -1,0 +1,4 @@
+MuMu的苍穹外卖项目
+JavaWeb基础练习项目
+熟练掌握springboot框架，以及mapper的增删改查操作
+省略了微信支付功能
